@@ -70,12 +70,12 @@ class Analytics:
         )
 
         result = query.all()
-        import pdb;
         return [
             {
                 "protocol": row.protocol,
                 "total_flows": row.total_flows,
-                "total_bytes_gb": round(self.bytes_to_gb(float(row.total_bytes)), 2) if row.total_bytes else 0.0,
+                "total_bytes_gbs": round(self.bytes_to_gb(float(row.total_bytes)), 2) if row.total_bytes else 0.0,
+                # Fixed field name
                 "total_packets": int(row.total_packets) if row.total_packets else 0,
             }
             for row in result
