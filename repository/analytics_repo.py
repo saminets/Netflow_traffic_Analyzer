@@ -80,3 +80,20 @@ class Analytics:
             }
             for row in result
         ]
+
+    def get_traffic_to_port(self,port: str):
+        results  = (
+            self.db.query(
+                NetworkData.DstIp,
+                func.sum(cast(NetworkData.bytes, BigInteger)).label("total_bytes"),
+                func.sum(cast(NetworkData.packets, BigInteger)).label("total_packets")
+            )
+            .filter(NetworkData.dst_port == port)
+            .group_by(NetworkData.DstIp)
+            .order_by(func.sum(cast(NetworkData.bytes, BigInteger)).desc())
+            .all()
+        )
+        return [
+            {"DST_IP": row[0], "total_bytes": row[1], "total_packets": row[2]}
+            for row in results
+        ]
