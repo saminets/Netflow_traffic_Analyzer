@@ -88,7 +88,7 @@ class Analytics:
                 func.sum(cast(NetworkData.bytes, BigInteger)).label("total_bytes"),
                 func.sum(cast(NetworkData.packets, BigInteger)).label("total_packets")
             )
-            .filter(NetworkData.dst_port == port)
+            .filter(NetworkData.src_port == port)
             .group_by(NetworkData.dest_ip)
             .order_by(func.sum(cast(NetworkData.bytes, BigInteger)).desc())
             .all()
