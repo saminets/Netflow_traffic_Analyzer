@@ -43,6 +43,7 @@ def get_protocol_statistics(analytics: Analytics = Depends(get_analytics)):
 def get_traffic_to_port(port: str, analytics: Analytics = Depends(get_analytics)):
     try:
         result = analytics.get_traffic_to_port(port)
+        print("-------------",result)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
