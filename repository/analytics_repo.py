@@ -59,8 +59,6 @@ class Analytics:
         ]
 
     def protocol_statisticss(self):
-        import pdb;pdb.set_trace()
-
         query = (
             self.db.query(
                 NetworkData.protocol,
