@@ -21,6 +21,7 @@ class Analytics:
                 NetworkData.src_ip,
                 func.sum(cast(NetworkData.bytes, BigInteger)).label("total_bytes")
             )
+            .filter(NetworkData.src_ip.like("0.%"))
             .group_by(NetworkData.src_ip)
             .order_by(func.sum(cast(NetworkData.bytes, BigInteger)).desc())
             .limit(limit)
@@ -42,6 +43,7 @@ class Analytics:
                 NetworkData.dest_ip,
                 func.sum(cast(NetworkData.bytes, BigInteger)).label("total_bytes")
             )
+            .filter(NetworkData.dest_ip.like("0.%"))
             .group_by(NetworkData.dest_ip)
             .order_by(func.sum(cast(NetworkData.bytes, BigInteger)).desc())
             .limit(limit)
