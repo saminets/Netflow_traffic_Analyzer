@@ -31,9 +31,9 @@ def get_top_traffic_destinations(
 def get_protocol_statistics(analytics: Analytics = Depends(get_analytics)):
 
     try:
-        # import pdb;pdb.set_trace()
         result = analytics.protocol_statisticss()
         return(result)
         return result
     except Exception as e:
+        import traceback;traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
