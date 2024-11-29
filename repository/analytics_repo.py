@@ -84,16 +84,16 @@ class Analytics:
     def get_traffic_to_port(self,port: str):
         results  = (
             self.db.query(
-                NetworkData.DstIp,
+                NetworkData.dest_ip,
                 func.sum(cast(NetworkData.bytes, BigInteger)).label("total_bytes"),
                 func.sum(cast(NetworkData.packets, BigInteger)).label("total_packets")
             )
             .filter(NetworkData.dst_port == port)
-            .group_by(NetworkData.DstIp)
+            .group_by(NetworkData.dest_ip)
             .order_by(func.sum(cast(NetworkData.bytes, BigInteger)).desc())
             .all()
         )
         return [
-            {"DST_IP": row[0], "total_bytes": row[1], "total_packets": row[2]}
+            {"dest_ip": row[0], "total_bytes": row[1], "total_packets": row[2]}
             for row in results
         ]
