@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from repository.analytics_repo import Analytics
-from schemas.analytics_schema import SrcIpBytes, DestIpBytes,ProtocolStatistics
+from schemas.analytics_schema import SrcIpBytes, DestIpBytes, ProtocolStatistics, TrafficResponse
 from core.dependencies import get_analytics
 
 analytics_router = APIRouter()
@@ -39,7 +39,7 @@ def get_protocol_statistics(analytics: Analytics = Depends(get_analytics)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@analytics_router.get("/traffic-to-port/{port}", response_model=list[DestIpBytes])
+@analytics_router.get("/traffic-to-port/{port}", response_model=list[TrafficResponse])
 def get_traffic_to_port(port: str, analytics: Analytics = Depends(get_analytics)):
     try:
         result = analytics.get_traffic_to_port(port)

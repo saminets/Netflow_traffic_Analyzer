@@ -13,3 +13,8 @@ class ProtocolStatistics(BaseModel):
     total_flows: int
     total_bytes_gbs: float
     total_packets: int
+
+class TrafficResponse(BaseModel):
+    dst_ip: str
+    total_bytes: int
+    total_packets: int
