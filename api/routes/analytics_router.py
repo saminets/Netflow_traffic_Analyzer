@@ -7,6 +7,7 @@ from repository.analytics_repo import Analytics
 from schemas.analytics_schema import (SrcIpBytes, DestIpBytes,
                                       ProtocolStatistics,HourlyStatistics,Srcport,Destport,TrafficData,TrafficQueryParams)
 
+from schemas.analytics_schema import SrcIpBytes, DestIpBytes, ProtocolStatistics, TrafficResponse
 from core.dependencies import get_analytics
 
 analytics_router = APIRouter()
@@ -37,9 +38,19 @@ def get_top_traffic_destinations(
 def get_protocol_statistics(analytics: Analytics = Depends(get_analytics)):
 
     try:
-        # import pdb;pdb.set_trace()
         result = analytics.protocol_statisticss()
         return(result)
+        return result
+    except Exception as e:
+        import traceback;traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@analytics_router.get("/traffic-to-port/{port}", response_model=list[TrafficResponse])
+def get_traffic_to_port(port: str, analytics: Analytics = Depends(get_analytics)):
+    try:
+        result = analytics.get_traffic_to_port(port)
+        print("-------------",result)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -122,6 +133,7 @@ def get_traffic(params: TrafficQueryParams = Depends(), analytics: Analytics = D
         src_port=params.src_port,
         dst_port=params.dst_port,
         start_date=start_date_dt,
+
         end_date=end_date_dt
     )
 

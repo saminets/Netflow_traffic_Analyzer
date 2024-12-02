@@ -39,7 +39,14 @@ class TrafficData(BaseModel):
     packet_count: int
     traffic_date: str
 class TrafficQueryParams(BaseModel):
-    src_port: Optional[int]
-    dst_port: Optional[int]
+    src_port: Optional[str]
+    dst_port: Optional[str]
+    src_ip:Optional[str]
+    dst_ip:Optional[str]
     start_date: Optional[str]
     end_date: Optional[str]
+
+class TrafficResponse(BaseModel):
+    dst_ip: str
+    total_bytes: int
+    total_packets: int
