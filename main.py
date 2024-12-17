@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from core.database import Base, engine
 from api.routes.analytics_router import analytics_router
+from api.routes.nta_collector.nta_routes import routers as snmp_collector_routers
 # Create tables in the database
 Base.metadata.create_all(bind=engine)
 
@@ -29,3 +30,5 @@ async def log_requests(request: Request, call_next):
     return response
 # Include the analytics routes
 app.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])
+app.include_router(snmp_collector_routers, prefix="/snmp_collector", tags=["snmp_collector"])
+
