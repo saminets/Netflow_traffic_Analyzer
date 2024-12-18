@@ -358,6 +358,7 @@ class SnmpCollector():
                     "description": description,
                     "download": download_speed,
                     "upload": upload_speed,
+                    "datetime":datetime.now()
                 }
 
                 interfaceList[key] = interfaceObj

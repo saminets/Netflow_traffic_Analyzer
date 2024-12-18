@@ -118,8 +118,13 @@ async def websocket_get_nta_device_stats(
         collector_data = params.get("collector_data", "interface")
 
         valid_snmp_versions = ["v1/v2", "v3"]
+        valid_collector_Data = ['All','interface']
         if snmp_version not in valid_snmp_versions:
             error_message = f"Invalid SNMP version: {snmp_version}. Allowed values are {valid_snmp_versions}."
+            await websocket.send_text(error_message)
+            return  
+        if collector_data not in valid_collector_Data:
+            error_message = f"Invalid collector version: {collector_data}. Allowed values are {valid_collector_Data}."
             await websocket.send_text(error_message)
             return  
 
