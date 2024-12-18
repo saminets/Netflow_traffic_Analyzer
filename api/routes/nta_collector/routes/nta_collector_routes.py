@@ -1,7 +1,7 @@
 import os,sys
 import threading
 import traceback
-
+import asyncio,json
 from fastapi.responses import HTMLResponse,PlainTextResponse
 
 from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException,Depends
@@ -85,37 +85,61 @@ async def test_get_nta_device_stats(
         await ws_manager.send_message(f"Error: {str(e)}")
         return {"status": "Error occurred", "details": str(e)}
 
+
+def convert_datetimes(obj):
+    if isinstance(obj, dict):  # Check if the object is a dictionary
+        # Recursively process each key-value pair
+        return {k: convert_datetimes(v) for k, v in obj.items()}
+    elif isinstance(obj, list):  # If it's a list, apply conversion to each item
+        return [convert_datetimes(item) for item in obj]
+    elif isinstance(obj, datetime):  # If it's a datetime object, convert to string
+        return obj.isoformat()
+    else:
+        return obj  # Return the object as-is if it's not a datetime
+
 import time
-@router.post('/ws/get_nta_device_interface_stats')
-async def test_get_nta_device_stats(
-    ip_address: str = Query(..., description="IP address of the device"),
-    device_type: str = Query(None, description="Name of the device"),
-    community: str = Query("active", description="Device status (e.g., active, inactive)"),
-    port: int = Query(..., ge=1, le=65535, description="Port number (1-65535)"),
-    snmp_version: str = Query("active", description="Device status (e.g., active, inactive)"),
-    collector_data: str = Query("interface", description="Device status (e.g., all, interface)"),
-    ws_manager: ConnectionManager = Depends(lambda: manager)
+@router.websocket("/ws/get_nta_device_interface_stats")
+async def websocket_get_nta_device_stats(
+    websocket: WebSocket
 ):
-    global interface_dataframe  # Access the global DataFrame
+    await websocket.accept()  # Accept WebSocket connection
+
     try:
+        global interface_dataframe
+        params = await websocket.receive_text()  
+        params = eval(params)  
+
+
+        ip_address = params.get("ip_address")
+        device_type = params.get("device_type")
+        community = params.get("community", "active")
+        port = params.get("port")
+        snmp_version = params.get("snmp_version", "v1/v2")
+        collector_data = params.get("collector_data", "interface")
+
+        valid_snmp_versions = ["v1/v2", "v3"]
+        if snmp_version not in valid_snmp_versions:
+            error_message = f"Invalid SNMP version: {snmp_version}. Allowed values are {valid_snmp_versions}."
+            await websocket.send_text(error_message)
+            return  
+
         while True:
             nta_device_stats = SnmpCollector()
 
-            # Retrieve SNMP data
             nta_device_stats_data = nta_device_stats.getSnmpData(
                 community=community,
                 port=port,
                 snmp_version=snmp_version,
                 device_type=device_type,
                 ip_address=ip_address,
-                collector_data=collector_data, 
+                collector_data=collector_data,
             )
 
-            # Extract the data into a DataFrame-friendly format
-            stats = nta_device_stats_data[0]  # Assuming data is in the first element of the list
-            timestamp = stats.pop("datetime")  # Remove and store the timestamp
+            stats = nta_device_stats_data.get('interfaces', {})
+            print("stats are:::::::::::::::::@@",stats)
+            devices_data = nta_device_stats_data.get('device', {})
+            timestamp = stats.pop("datetime")  
 
-            print("len of interface data frame is:",len(interface_dataframe),file=sys.stderr)
             flattened_data = [
                 {
                     "interface_id": key,
@@ -124,19 +148,21 @@ async def test_get_nta_device_stats(
                     "description": value["description"],
                     "download": value["download"],
                     "upload": value["upload"],
-                    "datetime": pd.to_datetime(timestamp),  # Ensure timestamp is in datetime format
-                    "ip_address": ip_address,  # Add context information
+                    "datetime": pd.to_datetime(timestamp).isoformat(),  
+                    "ip_address": ip_address,
                     "device_type": device_type
                 }
                 for key, value in stats.items() if key.isdigit()
             ]
 
-            # Convert to DataFrame and append to the global DataFrame
             new_data_df = pd.DataFrame(flattened_data)
+            
+
             interface_dataframe = pd.concat([interface_dataframe, new_data_df], ignore_index=True)
 
-            # Calculate 1-minute averages for upload and download
+            # Calculate 1-minute averages
             one_minute_ago = datetime.now() - timedelta(minutes=1)
+            interface_dataframe["datetime"] = pd.to_datetime(interface_dataframe["datetime"], errors='coerce')
             filtered_df = interface_dataframe[interface_dataframe["datetime"] >= one_minute_ago]
 
             avg_df = (
@@ -146,23 +172,32 @@ async def test_get_nta_device_stats(
                     avg_download=("download", "mean"),
                     name=("name", "first"),
                     description=("description", "first"),
-                    last_updated=("datetime", "max"),
+                    last_updated=("datetime", lambda x: max(pd.to_datetime(x)).isoformat()), 
                 )
                 .reset_index()
             )
+            avg_data_json = avg_df.to_dict(orient="records")
 
-        # Send the average data to WebSocket clients
-            value = "test"
-            await ws_manager.send_message(avg_df.to_json(orient="records"))#avg_df.to_json(orient="records")
-            time.sleep(15)
-        # Return success response
-        # return {
-        #     "status": "Notification sent",
-        #     "data": flattened_data,
-        #     "averages": avg_df.to_dict(orient="records"),
-        # }
+            # Include device data if not empty
+            if devices_data:
+                avg_data_json.append({"device_data": devices_data})
+
+            for record in avg_data_json:
+                print("recordisss:", record)
+    
+                # Check if 'last_updated' exists and convert it to string
+                if "last_updated" in record:
+                    record["last_updated"] = str(record["last_updated"])
+                    print("rrecord into str")
+            print("avg data json",avg_data_json)
+
+            avg_data_json = convert_datetimes(avg_data_json)
+            await websocket.send_text(json.dumps(avg_data_json))
+
+            await asyncio.sleep(15)
+
+    except WebSocketDisconnect:
+        print("WebSocket disconnected", file=sys.stderr)
     except Exception as e:
-        # Log the error and send an error response
         traceback.print_exc()
-        await ws_manager.send_message(f"Error: {str(e)}")
-        return {"status": "Error occurred", "details": str(e)}
+        await websocket.send_text(f"Error: {str(e)}")

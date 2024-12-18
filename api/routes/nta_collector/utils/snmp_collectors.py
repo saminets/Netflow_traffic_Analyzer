@@ -6,6 +6,7 @@ import requests
 import re
 
 
+
 class SnmpCollector():
     def __init__(self):
         pass
@@ -121,7 +122,7 @@ class SnmpCollector():
 
     def getSnmpData(self, community, port,snmp_version,device_type,ip_address,collector_data):
         try:
-            device_data_list = []
+            device_data_list = {}
             # if snmp_version == "v3":
             #     snmp = self.createSnmpObjectV3(ip_address=ip_address, community = community,port=port)
             #     connection = self.testSnmpConnection(snmp)
@@ -131,11 +132,11 @@ class SnmpCollector():
                 connection = self.testSnmpConnection(snmp)
                 if connection:
                     device = self.getDeviceData(ip_address=ip_address, snmp = snmp,device_type=device_type)
-                    device_data_list.append(device)
+                    device_data_list['device'] = device #.append({"device":device})
 
                     interfaces =  self.getInterfaceData(ip_address, snmp, device_type)
                     print("Interfaces dat is@@@@@@@@@@@@@@@@@@@@@@@@@@@@",interfaces,file=sys.stderr)
-                    device_data_list.append(interfaces)
+                    device_data_list['interfaces'] = interfaces #.append({"interfaces":interfaces})
                 else:
                     print(f"SNMP connection failed for {ip_address}, setting SNMP status to 'Down'", file=sys.stderr)
             elif snmp_version == "v1/v2" and collector_data == 'interface':
@@ -148,7 +149,7 @@ class SnmpCollector():
 
                     interfaces =  self.getInterfaceData(ip_address, snmp, device_type)
                     print("Interfaces dat is@@@@@@@@@@@@@@@@@@@@@@@@@@@@",interfaces,file=sys.stderr)
-                    device_data_list.append(interfaces)
+                    device_data_list['interfaces'] = interfaces 
                 else:
                     print(f"SNMP connection failed for {ip_address}, setting SNMP status to 'Down'", file=sys.stderr)
             else:
