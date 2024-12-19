@@ -199,7 +199,7 @@ async def websocket_get_nta_device_stats(
             avg_data_json = convert_datetimes(avg_data_json)
             await websocket.send_text(json.dumps(avg_data_json))
 
-            await asyncio.sleep(15)
+            # await asyncio.sleep(15)
 
     except WebSocketDisconnect:
         print("WebSocket disconnected", file=sys.stderr)
